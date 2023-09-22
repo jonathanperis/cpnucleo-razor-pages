@@ -1,0 +1,44 @@
+name: Build, Publish and Deploy to Azure App Services
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: "./src/Cpnucleo.RazorPages"
+
+    steps:
+    - uses: actions/checkout@main
+      with:
+        fetch-depth: 0
+
+    - name: Set up .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        global-json-file: global.json
+
+    - name: Install dependencies
+      run: dotnet restore        
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0
+      with:
+        versionSpec: '5.x'
+
+    - name: Determine Version
+      uses: gittools/actions/gitversion/execute@v0
+      with:
+        useConfigFile: true
+        updateAssemblyInfo: true
+
+    - name: Build project
+      run: dotnet build --configuration Release --no-restore /p:Version=${{ env.GitVersion_SemVer }} /p:SourceLinkCreate=true /p:PublicRelease=true
+
+    - name: Publish project
+      run: dotnet publish --configuration Release --output .\bin\publish
